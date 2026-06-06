@@ -4,13 +4,32 @@ workflows:
     environment:
       flutter: 3.22.0
       java: 17
+      vars:
+        FIREBASE_API_KEY: Encrypted(...)
+        FIREBASE_ANDROID_APP_ID: Encrypted(...)
+        FIREBASE_MESSAGING_SENDER_ID: Encrypted(...)
+        FIREBASE_PROJECT_ID: Encrypted(...)
+        FIREBASE_STORAGE_BUCKET: Encrypted(...)
+    cache:
+      cache_paths:
+        - ~/.pub-cache
     scripts:
-      - name: Clean build
+      - name: Clean and prepare
         script: |
           flutter clean
           flutter pub get
-          cd android && ./gradlew clean && cd ..
-      
+          
+      - name: Verify Flutter configuration
+        script: |
+          flutter doctor -v
+          echo "Flutter version: $(flutter --version)"
+          
+      - name: Check Android configuration
+        script: |
+          echo "Checking Android files..."
+          ls -la android/app/
+          cat android/app/build.gradle | head -20
+          
       - name: Build Android APK
         script: |
           flutter build apk --release \
@@ -19,6 +38,24 @@ workflows:
             --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
             --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
             --dart-define=FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET"
-      
+            
+      - name: Verify build output
+        script: |
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            echo "✅ APK built successfully!"
+            ls -la build/app/outputs/flutter-apk/
+          else
+            echo "❌ APK not found!"
+            exit 1
+          fi
+          
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
+      
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
