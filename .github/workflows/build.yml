@@ -1,4 +1,3 @@
-# .github/workflows/build.yml
 name: Build and Release APK
 
 on:
@@ -20,6 +19,7 @@ on:
           - debug
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # ← Add this line
   FLUTTER_VERSION: '3.22.0'
   JAVA_VERSION: '17'
 
