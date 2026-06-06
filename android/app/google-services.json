@@ -8,9 +8,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:917500508857:android:638b867a45c8a380cfb968",
+        "mobilesdk_app_id": "1:917500508857:android:7ee04895631b7202cfb968",
         "android_client_info": {
-          "package_name": "com.debtpos"
+          "package_name": "com.marnie.pos"
         }
       },
       "oauth_client": [
