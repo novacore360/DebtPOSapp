@@ -1,0 +1,257 @@
+
+name: Build and Release APK
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+env:
+  FLUTTER_VERSION: '3.22.0'
+  JAVA_VERSION: '17'
+  GRADLE_VERSION: '8.6'
+
+jobs:
+  analyze:
+    name: Analyze Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Check formatting
+        run: flutter format --set-exit-if-changed lib
+
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate local.properties
+        run: |
+          echo "flutter.sdk=${{ runner.tool_cache }}/flutter" > android/local.properties
+          echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
+
+      # ── Firebase Configuration ────────────────────────────────────────────────
+      - name: Create google-services.json
+        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+          echo "✅ google-services.json created"
+
+      - name: Validate google-services.json
+        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+        run: |
+          if [ ! -f android/app/google-services.json ]; then
+            echo "❌ google-services.json not found"
+            exit 1
+          fi
+          if ! grep -q "com.marnie.pos" android/app/google-services.json; then
+            echo "⚠️  Warning: Package name mismatch in google-services.json"
+          fi
+
+      # ── Keystore Configuration (for release builds) ──────────────────────────
+      - name: Decode Keystore
+        if: ${{ github.event.inputs.build_type == 'release' && secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+          echo "✅ Keystore decoded"
+
+      - name: Create key.properties
+        if: ${{ github.event.inputs.build_type == 'release' && secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release.keystore
+          EOF
+          echo "✅ key.properties created"
+
+      # ── Build Configuration ───────────────────────────────────────────────────
+      - name: Get version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | head -1 | sed 's/version: //' | tr -d ' ')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: Build Release APK
+        if: github.event.inputs.build_type == 'release' || github.event.inputs.build_type == ''
+        run: |
+          flutter build apk --release \
+            --dart-define=FIREBASE_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="${{ secrets.FIREBASE_ANDROID_APP_ID }}" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" \
+            --dart-define=FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}" \
+            --dart-define=FIREBASE_STORAGE_BUCKET="${{ secrets.FIREBASE_STORAGE_BUCKET }}" \
+            --dart-define=FIREBASE_AUTH_DOMAIN="${{ secrets.FIREBASE_AUTH_DOMAIN }}" \
+            --dart-define=FIREBASE_MEASUREMENT_ID="${{ secrets.FIREBASE_MEASUREMENT_ID }}" \
+            --dart-define=FIREBASE_IOS_APP_ID="${{ secrets.FIREBASE_IOS_APP_ID }}" \
+            --dart-define=FIREBASE_IOS_CLIENT_ID="${{ secrets.FIREBASE_IOS_CLIENT_ID }}" \
+            --dart-define=FIREBASE_WEB_APP_ID="${{ secrets.FIREBASE_WEB_APP_ID }}"
+
+      - name: Build Debug APK
+        if: github.event.inputs.build_type == 'debug'
+        run: |
+          flutter build apk --debug \
+            --dart-define=FIREBASE_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="${{ secrets.FIREBASE_ANDROID_APP_ID }}" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" \
+            --dart-define=FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}" \
+            --dart-define=FIREBASE_STORAGE_BUCKET="${{ secrets.FIREBASE_STORAGE_BUCKET }}" \
+            --dart-define=FIREBASE_AUTH_DOMAIN="${{ secrets.FIREBASE_AUTH_DOMAIN }}" \
+            --dart-define=FIREBASE_MEASUREMENT_ID="${{ secrets.FIREBASE_MEASUREMENT_ID }}"
+
+      # ── Split APKs for multiple ABIs (optional) ──────────────────────────────
+      - name: Build Split APKs
+        if: false  # Disabled by default, enable if needed
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=FIREBASE_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="${{ secrets.FIREBASE_ANDROID_APP_ID }}" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" \
+            --dart-define=FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+
+      # ── Upload Artifacts ─────────────────────────────────────────────────────
+      - name: List build output
+        run: |
+          echo "📁 Build output:"
+          ls -la build/app/outputs/flutter-apk/ || echo "No APK files found"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: marnie-pos-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+          retention-days: 30
+          compression-level: 6
+
+      # ── Create GitHub Release for tags ───────────────────────────────────────
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          name: "Marnie POS ${{ steps.version.outputs.version }}"
+          body: |
+            ## 🚀 Marnie Store POS ${{ steps.version.outputs.version }}
+            
+            ### ✨ Features
+            - Real-time Firebase Firestore sync
+            - Full offline support with SQLite
+            - Integrated barcode scanner
+            - Customer management with purchase history
+            - Inventory management
+            - Sales dashboard with analytics
+            - Automatic sync when back online
+            
+            ### 📱 Installation
+            1. Download the APK below
+            2. Enable "Install from unknown sources" in Android settings
+            3. Install and launch the app
+            4. Sign in with your Firebase credentials
+            
+            ### 🔧 Requirements
+            - Android 6.0+ (API 23+)
+            - Camera permission for barcode scanning
+            - Internet for first-time login and initial sync
+            
+            ### 📊 Build Information
+            - Build Number: ${{ github.run_number }}
+            - Commit: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            - Branch: ${{ github.ref_name }}
+            
+            > 💡 **Note**: First sync may take a few seconds. After initial sync, the app works fully offline.
+            
+          draft: false
+          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Deploy to Firebase App Distribution (optional) ───────────────────────
+      - name: Upload to Firebase App Distribution
+        if: false && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: testers
+          file: build/app/outputs/flutter-apk/app-release.apk
+          releaseNotes: "Auto-build from commit ${{ github.sha }}"
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: build
+    if: always() && needs.build.result == 'failure'
+    steps:
+      - name: Send failure notification
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          args: |
+            ❌ **Build Failed!**
+            Repository: ${{ github.repository }}
+            Workflow: ${{ github.workflow }}
+            Commit: ${{ github.event.head_commit.message }}
+            Author: ${{ github.event.head_commit.author.name }}
+            Link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
