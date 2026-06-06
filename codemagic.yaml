@@ -1,0 +1,24 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    environment:
+      flutter: 3.22.0
+      java: 17
+    scripts:
+      - name: Clean build
+        script: |
+          flutter clean
+          flutter pub get
+          cd android && ./gradlew clean && cd ..
+      
+      - name: Build Android APK
+        script: |
+          flutter build apk --release \
+            --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="$FIREBASE_ANDROID_APP_ID" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
+            --dart-define=FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET"
+      
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
