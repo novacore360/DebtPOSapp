@@ -466,19 +466,27 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
     return positions.map((pos) {
       final top = pos[0] as bool;
       final left = pos[1] as bool;
+      final screenHeight = MediaQuery.of(context).size.height;
+      final screenWidth = MediaQuery.of(context).size.width;
+      
+      double? topPosition = top ? screenHeight / 2 - 90 + 16 : null;
+      double? bottomPosition = !top ? screenHeight / 2 - 90 + 16 : null;
+      double? leftPosition = left ? screenWidth / 2 - 130 + 16 : null;
+      double? rightPosition = !left ? screenWidth / 2 - 130 + 16 : null;
+      
       return Positioned(
-        top:    top  ? MediaQuery.of(context).size.height / 2 - 90 + 16 : null,
-        bottom: !top ? MediaQuery.of(context).size.height / 2 - 90 + 16 : null,
-        left:   left  ? MediaQuery.of(context).size.width / 2 - 130 + 16 : null,
-        right:  !left ? MediaQuery.of(context).size.width / 2 - 130 + 16 : null,
+        top: topPosition,
+        bottom: bottomPosition,
+        left: leftPosition,
+        right: rightPosition,
         child: Container(
           width: 20, height: 20,
           decoration: BoxDecoration(
             border: Border(
-              top:    top  ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
+              top: top ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
               bottom: !top ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
-              left:   left  ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
-              right:  !left ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
+              left: left ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
+              right: !left ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
             ),
           ),
         ),
