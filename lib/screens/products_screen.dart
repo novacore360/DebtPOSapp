@@ -132,7 +132,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
       Expanded(child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Header
           SectionHeader(
             title: 'Products',
             subtitle: '${dp.products.length} items in inventory',
@@ -153,7 +152,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── Form ──
           if (_showForm) ...[
             AppCard(padding: const EdgeInsets.all(18), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +171,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   _ErrorBanner(_error!),
                 ],
                 const SizedBox(height: 12),
-                // Code + scanner
                 Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Expanded(child: AppTextField(
                     label: 'Product Code *', hint: 'e.g. PRD-001',
@@ -233,7 +230,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
             const SizedBox(height: 14),
           ],
 
-          // ── Search ──
           TextField(
             controller: _searchCtrl,
             onChanged: (v) => setState(() => _search = v),
@@ -258,7 +254,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
           const SizedBox(height: 14),
 
-          // ── Grid ──
           if (filtered.isEmpty)
             const EmptyState(icon: Icons.inventory_2, message: 'No products found')
           else
@@ -291,7 +286,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 }
 
-// ─── Product card ─────────────────────────────────────────────────────────────
 class _ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onEdit;
@@ -401,7 +395,6 @@ class _ErrorBanner extends StatelessWidget {
   );
 }
 
-// ─── Barcode scanner page (public so new_purchase_screen can use it too) ──────
 class BarcodeScanPage extends StatefulWidget {
   const BarcodeScanPage({super.key});
   @override
@@ -441,7 +434,6 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
             }
           },
         ),
-        // Overlay frame
         Center(child: Container(
           width: 260, height: 180,
           decoration: BoxDecoration(
@@ -449,8 +441,7 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
             borderRadius: BorderRadius.circular(12),
           ),
         )),
-        // Corners
-        ..._corners(),
+        ..._buildCornerOverlays(),
         Positioned(bottom: 40, left: 0, right: 0,
           child: Text('Point camera at a barcode or QR code',
               textAlign: TextAlign.center,
@@ -459,39 +450,74 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
     );
   }
 
-  List<Widget> _corners() {
-    final positions = [
-      [true, true], [true, false], [false, true], [false, false],
-    ];
-    return positions.map((pos) {
-      final top = pos[0] as bool;
-      final left = pos[1] as bool;
-      final screenHeight = MediaQuery.of(context).size.height;
-      final screenWidth = MediaQuery.of(context).size.width;
-      
-      double? topPosition = top ? screenHeight / 2 - 90 + 16 : null;
-      double? bottomPosition = !top ? screenHeight / 2 - 90 + 16 : null;
-      double? leftPosition = left ? screenWidth / 2 - 130 + 16 : null;
-      double? rightPosition = !left ? screenWidth / 2 - 130 + 16 : null;
-      
-      return Positioned(
-        top: topPosition,
-        bottom: bottomPosition,
-        left: leftPosition,
-        right: rightPosition,
+  List<Widget> _buildCornerOverlays() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final centerY = screenHeight / 2;
+    final centerX = screenWidth / 2;
+    final topY = centerY - 90;
+    final bottomY = centerY + 90;
+    final leftX = centerX - 130;
+    final rightX = centerX + 130;
+    
+    return [
+      // Top-left corner
+      Positioned(
+        top: topY,
+        left: leftX,
         child: Container(
           width: 20, height: 20,
           decoration: BoxDecoration(
             border: Border(
-              top: top ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
-              bottom: !top ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
-              left: left ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
-              right: !left ? const BorderSide(color: AppColors.primary, width: 3) : BorderSide.none,
+              top: const BorderSide(color: AppColors.primary, width: 3),
+              left: const BorderSide(color: AppColors.primary, width: 3),
             ),
           ),
         ),
-      );
-    }).toList();
+      ),
+      // Top-right corner
+      Positioned(
+        top: topY,
+        right: screenWidth - rightX,
+        child: Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(
+            border: Border(
+              top: const BorderSide(color: AppColors.primary, width: 3),
+              right: const BorderSide(color: AppColors.primary, width: 3),
+            ),
+          ),
+        ),
+      ),
+      // Bottom-left corner
+      Positioned(
+        bottom: screenHeight - bottomY,
+        left: leftX,
+        child: Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: const BorderSide(color: AppColors.primary, width: 3),
+              left: const BorderSide(color: AppColors.primary, width: 3),
+            ),
+          ),
+        ),
+      ),
+      // Bottom-right corner
+      Positioned(
+        bottom: screenHeight - bottomY,
+        right: screenWidth - rightX,
+        child: Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: const BorderSide(color: AppColors.primary, width: 3),
+              right: const BorderSide(color: AppColors.primary, width: 3),
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
   @override
