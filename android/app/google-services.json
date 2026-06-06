@@ -1,21 +1,39 @@
 {
-  "_comment": "REPLACE THIS FILE with your actual google-services.json from the Firebase Console.",
-  "_comment2": "Go to: Firebase Console → Project Settings → Android App → Download google-services.json",
   "project_info": {
-    "project_number": "REPLACE_WITH_SENDER_ID",
-    "project_id": "REPLACE_WITH_PROJECT_ID",
-    "storage_bucket": "REPLACE.appspot.com"
+    "project_number": "917500508857",
+    "firebase_url": "https://arbify-ce847-default-rtdb.firebaseio.com",
+    "project_id": "arbify-ce847",
+    "storage_bucket": "arbify-ce847.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "REPLACE_WITH_APP_ID",
+        "mobilesdk_app_id": "1:917500508857:android:638b867a45c8a380cfb968",
         "android_client_info": {
-          "package_name": "com.marnie.pos"
+          "package_name": "com.debtpos"
         }
       },
-      "api_key": [{"current_key": "REPLACE_WITH_API_KEY"}],
-      "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+      "oauth_client": [
+        {
+          "client_id": "917500508857-4g7l8f6n8qfi382b5at795enqvtg85vo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYTNFCoYWtVj3gPogNeRogyMARZvd1g8c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "917500508857-4g7l8f6n8qfi382b5at795enqvtg85vo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
