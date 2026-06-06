@@ -1,0 +1,66 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+}
+
+def keystorePropertiesFile = rootProject.file('key.properties')
+def keystoreProperties     = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace "com.marnie.pos"
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions { jvmTarget = '1.8' }
+
+    sourceSets { main.java.srcDirs += 'src/main/kotlin' }
+
+    defaultConfig {
+        applicationId "com.marnie.pos"
+        minSdkVersion 23
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode    flutter.versionCode
+        versionName    flutter.versionName
+        multiDexEnabled true
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias       keystoreProperties['keyAlias']
+                keyPassword    keystoreProperties['keyPassword']
+                storeFile      file(keystoreProperties['storeFile'])
+                storePassword  keystoreProperties['storePassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig     keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled     true
+            shrinkResources   true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter { source '../..' }
+
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'androidx.multidex:multidex:2.0.1'
+}

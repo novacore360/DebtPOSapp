@@ -1,0 +1,22 @@
+{
+  "_comment": "REPLACE THIS FILE with your actual google-services.json from the Firebase Console.",
+  "_comment2": "Go to: Firebase Console → Project Settings → Android App → Download google-services.json",
+  "project_info": {
+    "project_number": "REPLACE_WITH_SENDER_ID",
+    "project_id": "REPLACE_WITH_PROJECT_ID",
+    "storage_bucket": "REPLACE.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "REPLACE_WITH_APP_ID",
+        "android_client_info": {
+          "package_name": "com.marnie.pos"
+        }
+      },
+      "api_key": [{"current_key": "REPLACE_WITH_API_KEY"}],
+      "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+    }
+  ],
+  "configuration_version": "1"
+}
